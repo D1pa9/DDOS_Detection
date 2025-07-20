@@ -1,6 +1,6 @@
 This project is a DDoS Detection & Alert System built using Flask, Google Gmail API, and Python. It detects suspicious traffic patterns and sends an email alert when a potential DDoS attack is detected.
 
-🚀 Features
+**Features**
 
 Logs incoming traffic requests (IP & timestamp).
 
@@ -11,8 +11,7 @@ Sends email alerts when an attack is detected.
 Web-based login authentication system.
 
 Flask-based dashboard to monitor traffic.
-
-🛠️ Installation & Setup
+**Installation & Setup**
 
 1️⃣ Prerequisites
 
