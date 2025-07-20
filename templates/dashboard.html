@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Network Threat Detection Dashboard</h1>
+        <div id="traffic-chart" style="width: 100%; height: 400px;"></div>
+        <button onclick="checkDdos()">Simulate Traffic</button>
+
+        <!-- DDoS Info Section -->
+        <div id="ddos-info">
+            <h3>Network Threat Information</h3>
+            <p id="ddos-count">Attacks Detected: 0</p>
+            <ul id="ddos-ips"></ul> <!-- List of DDoS IPs -->
+        </div>
+
+        <div id="status-message"></div>
+        <a href="/logout">Logout</a>
+    </div>
+
+    <script>
+        let trafficData = [];
+        let ddosIps = [];  // Store DDoS IPs
+
+        // Update the chart
+        function updateChart() {
+            const timestamps = trafficData.map(data => new Date(data.timestamp * 1000).toLocaleTimeString());
+
+            // Group traffic by IPs
+            const groupedByIp = {};
+            trafficData.forEach(data => {
+                if (!groupedByIp[data.ip]) {
+                    groupedByIp[data.ip] = [];
+                }
+                groupedByIp[data.ip].push(data.timestamp);
+            });
+
+            // Prepare the data for each IP and highlight DDoS IPs
+            const plotData = Object.keys(groupedByIp).map(ip => {
+                const isDdos = ddosIps.includes(ip);  // Check if the IP is in the DDoS list
+
+                return {
+                    x: groupedByIp[ip].map(timestamp => new Date(timestamp * 1000).toLocaleTimeString()),
+                    y: new Array(groupedByIp[ip].length).fill(ip),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: ip,  // Label each line with the IP
+                    marker: { color: isDdos ? 'red' : getRandomColor() }  // Use red color for DDoS IPs
+                };
+            });
+
+            // Plot the data
+            Plotly.newPlot('traffic-chart', plotData);
+        }
+
+        // Simulate traffic and check for DDoS attacks
+        function checkDdos() {
+            fetch('/traffic', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip: generateRandomIp() })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the DDoS status message
+                const statusMessage = document.getElementById('status-message');
+                statusMessage.innerHTML = `<p><strong>${data.message}</strong></p>`;
+                statusMessage.style.color = data.is_ddos ? 'red' : 'green';
+
+                // Update the DDoS info (count and IPs)
+                const ddosCount = document.getElementById('ddos-count');
+                ddosCount.innerHTML = `Threat Detected: ${data.ddos_count}`;
+
+                const ddosIpsList = document.getElementById('ddos-ips');
+                ddosIpsList.innerHTML = '';  // Clear previous IPs
+                ddosIps = data.ddos_ips;  // Store the DDoS IPs
+                data.ddos_ips.forEach(ip => {
+                    const li = document.createElement('li');
+                    li.textContent = ip;
+                    ddosIpsList.appendChild(li);
+
+                    // Ensure DDoS IPs are included in traffic data
+                    trafficData.push({ ip: ip, timestamp: Date.now() / 1000 });
+                });
+
+                // Update chart with new data
+                trafficData.push({ ip: generateRandomIp(), timestamp: Date.now() / 1000 });
+                updateChart();
+            });
+        }
+
+        // Generate random IP for simulation
+        function generateRandomIp() {
+            return '192.168.1.' + Math.floor(Math.random() * 100);
+        }
+
+        // Function to generate random colors for each IP line in the graph
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    </script>
+    
+</body>
+</html>
